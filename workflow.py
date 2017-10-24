@@ -28,23 +28,25 @@ class WorkingGroup(Group):
         #     [5, 6666.6, 6666.6], [6, 6666.6, 6666.6], [7, 6666.6, 6666.6], [8, 6666.6, 6666.6], [9, 6666.6, 6666.6]]))
         # indep2.add_output('layout', val=np.array([[0, 0.0, 0.0], [1, 560.0, 560.0], [2, 1120.0, 1120.0],
         # [3, 1120.0, 0.0], [4, 0.0, 1120.0], [5, float('nan'), float('nan')]]))
-        indep2.add_output('freestream', val=8.5)
-        indep2.add_output('angle',
-                          val=90.0)  # Follows windrose convention. N = 0 deg, E = 90 deg, S = 180 deg, W = 270 deg
         indep2.add_output('r', val=turbine_radius)
         indep2.add_output('n_turbines', val=4)
-        self.add_subsystem('wakemodel', WakeModel(self.fraction_model, self.deficit_model, self.merge_model))
-        self.add_subsystem('power', self.power_model())
-        self.add_subsystem('farmpower', FarmAeroPower())
-        self.connect('indep2.layout', 'wakemodel.original')
-        self.connect('indep2.angle', 'wakemodel.angle')
-        self.connect('indep2.n_turbines', 'wakemodel.n_turbines')
-        self.connect('indep2.n_turbines', 'farmpower.n_turbines')
-        self.connect('indep2.n_turbines', 'power.n_turbines')
-        self.connect('indep2.freestream', 'wakemodel.freestream')
-        self.connect('indep2.r', 'wakemodel.r')
-        self.connect('wakemodel.U', 'power.U')
-        self.connect('power.p', 'farmpower.ind_powers')
+        farmg = self.add_subsystem('FarmGroup', Group())
+        indeps = farmg.add_subsystem('indeps', IndepVarComp())
+        farmg.indeps.add_output('freestream', val=8.5)
+        farmg.indeps.add_output('angle', val=90.0)  # Follows windrose convention. N = 0 deg, E = 90 deg, S = 180 deg,
+        # W = 270 deg
+        farmg.add_subsystem('wakemodel', WakeModel(self.fraction_model, self.deficit_model, self.merge_model),
+                            promotes_inputs=['original', 'n_turbines', 'r'])
+        farmg.add_subsystem('power', self.power_model(), promotes_inputs=['n_turbines'])
+        farmg.add_subsystem('farmpower', FarmAeroPower(), promotes_outputs=['farm_power'], promotes_inputs=['n_turbines'])
+        farmg.connect('indeps.angle', 'wakemodel.angle')
+        farmg.connect('indeps.freestream', 'wakemodel.freestream')
+        farmg.connect('wakemodel.U', 'power.U')
+        farmg.connect('power.p', 'farmpower.ind_powers')
+
+        # self.connect('indep2.layout', 'farmg.original')
+        self.connect('indep2.n_turbines', 'farmg.n_turbines')
+        self.connect('indep2.r', 'farmg.r')
 
 
 def read_layout(layout_file):
