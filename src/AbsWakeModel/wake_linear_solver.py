@@ -32,8 +32,6 @@ class LinearSolveWake(Group):
         self.model_merge = merge_model
 
     def setup(self):
-        freestream = self.add_subsystem('freestream', IndepVarComp())
-        freestream.add_output('freestream', val=8.5)
         self.add_subsystem('order_layout', OrderLayout(), promotes_inputs=['original', 'angle', 'n_turbines'])
 
         for n in range(max_n_turbines):

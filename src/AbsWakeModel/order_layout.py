@@ -28,11 +28,11 @@ class OrderLayout(ExplicitComponent):
         self.add_output('ordered', shape=(max_n_turbines, 3))
 
     def compute(self, inputs, outputs):
-        # print "1 Order"
         n_turbines = int(inputs['n_turbines'])
         original = inputs['original'][:n_turbines]
         # print original, "Input Original layout"
         angle = inputs['angle']
+        print "1 Order", angle
         ordered = order(original, angle)
         lendif = max_n_turbines - len(original)
         if lendif > 0:
