@@ -3,10 +3,14 @@ from WakeModel.jensen import JensenWakeFraction, JensenWakeDeficit
 from openmdao.api import IndepVarComp, Problem, Group, view_model, ParallelGroup
 import numpy as np
 from time import time
-from src.api import OneAngleFarmPower
 from Power.power_models import PowerPolynomial
 from input_params import turbine_radius
 from WakeModel.WakeMerge.RSS import WakeMergeRSS
+from src.api import AEPWorkflow
+
+real_angle = 180.0
+artificial_angle = 60.0
+n_windspeedbins = 2
 
 
 class WorkingGroup(Group):
@@ -28,27 +32,28 @@ class WorkingGroup(Group):
         #     [5, 6666.6, 6666.6], [6, 6666.6, 6666.6], [7, 6666.6, 6666.6], [8, 6666.6, 6666.6], [9, 6666.6, 6666.6]]))
         # indep2.add_output('layout', val=np.array([[0, 0.0, 0.0], [1, 560.0, 560.0], [2, 1120.0, 1120.0],
         # [3, 1120.0, 0.0], [4, 0.0, 1120.0], [5, float('nan'), float('nan')]]))
-        indep2.add_output('r', val=turbine_radius)
+        indep2.add_output('weibull_shapes', val=[0.01, 0.01])
+        indep2.add_output('weibull_scales', val=[10.0, 12.0])
+        indep2.add_output('dir_probabilities', val=[25.0, 75.0])
+        indep2.add_output('wind_directions', val=[0.0, 180.0])
+        indep2.add_output('cut_in', val=4.0)
+        indep2.add_output('cut_out', val=25.0)
+        indep2.add_output('r', val=40.0)
         indep2.add_output('n_turbines', val=4)
         indep2.add_output('freestream', val=[8.5, 8.0])
         indep2.add_output('angle', val=[90.0, 270.0])  # Follows windrose convention N = 0 deg, E = 90 deg, S = 180 deg,
         # W = 270 deg
+        self.add_subsystem('AEP', AEPWorkflow(real_angle, artificial_angle, n_windspeedbins))
 
-        parallel = self.add_subsystem('parallel', Group())
-
-        for n in range(2):
-            for m in range(2):
-                parallel.add_subsystem('wake{}'.format(2 * n + m),
-                                       OneAngleFarmPower(PowerPolynomial, JensenWakeFraction,
-                                                         JensenWakeDeficit, WakeMergeRSS),
-                                       promotes_inputs=['original', 'n_turbines', 'r'])
-                self.connect('indep2.angle', 'parallel.wake{}.wakemodel.angle'.format(2 * n + m), src_indices=n)
-                self.connect('indep2.freestream', 'parallel.wake{}.wakemodel.freestream'.format(2 * n + m),
-                             src_indices=m)
-
-        self.connect('indep2.layout', 'parallel.original')
-        self.connect('indep2.n_turbines', 'parallel.n_turbines')
-        self.connect('indep2.r', 'parallel.r')
+        self.connect('indep2.layout', 'AEP.original')
+        self.connect('indep2.n_turbines', 'AEP.n_turbines')
+        self.connect('indep2.r', 'AEP.r')
+        self.connect('indep2.cut_in', 'AEP.cut_in')
+        self.connect('indep2.cut_out', 'AEP.cut_out')
+        self.connect('indep2.weibull_shapes', 'AEP.weibull_shapes')
+        self.connect('indep2.weibull_scales', 'AEP.weibull_scales')
+        self.connect('indep2.dir_probabilities', 'AEP.dir_probabilities')
+        self.connect('indep2.wind_directions', 'AEP.wind_directions')
 
 
 def read_layout(layout_file):
