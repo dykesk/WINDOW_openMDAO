@@ -9,8 +9,8 @@ from WakeModel.WakeMerge.RSS import WakeMergeRSS
 from src.api import AEPWorkflow
 
 real_angle = 180.0
-artificial_angle = 60.0
-n_windspeedbins = 2
+artificial_angle = 90.0
+n_windspeedbins = 1
 
 
 class WorkingGroup(Group):
@@ -24,7 +24,7 @@ class WorkingGroup(Group):
     def setup(self):
         indep2 = self.add_subsystem('indep2', IndepVarComp())
         # indep2.add_output('layout', val=read_layout('horns_rev9.dat'))
-        indep2.add_output('layout', val=np.array([[0, 0.0, 0.0], [1, 560.0, 0.0], [2, 1120.0, 0.0], [3, 1680.0, 0.0],
+        indep2.add_output('layout', val=np.array([[0, 0.0, 0.0], [1, 0.0, 560.0], [2, 0.0, 1120.0], [3, 0.0, 1680.0],
                                                   [4, 0.0, 1120.0], [5, 0.0, 1120.0], [6, 0.0, 1120.0],
                                                   [7, 0.0, 1120.0], [8, 0.0, 1120.0], [9, 0.0, 1120.0]]))
         # indep2.add_output('layout', val=np.array(
@@ -32,17 +32,15 @@ class WorkingGroup(Group):
         #     [5, 6666.6, 6666.6], [6, 6666.6, 6666.6], [7, 6666.6, 6666.6], [8, 6666.6, 6666.6], [9, 6666.6, 6666.6]]))
         # indep2.add_output('layout', val=np.array([[0, 0.0, 0.0], [1, 560.0, 560.0], [2, 1120.0, 1120.0],
         # [3, 1120.0, 0.0], [4, 0.0, 1120.0], [5, float('nan'), float('nan')]]))
-        indep2.add_output('weibull_shapes', val=[0.01, 0.01])
-        indep2.add_output('weibull_scales', val=[10.0, 12.0])
-        indep2.add_output('dir_probabilities', val=[25.0, 75.0])
-        indep2.add_output('wind_directions', val=[0.0, 180.0])
-        indep2.add_output('cut_in', val=4.0)
-        indep2.add_output('cut_out', val=25.0)
+        indep2.add_output('weibull_shapes', val=[1.0, 1.0])
+        indep2.add_output('weibull_scales', val=[8.5, 8.5])
+        indep2.add_output('dir_probabilities', val=[50.0, 50.0])
+        indep2.add_output('wind_directions', val=[0.0, 180.0])  # Follows windrose convention N = 0 deg, E = 90 deg,
+        #  S = 180 deg, W = 270 deg
+        indep2.add_output('cut_in', val=3.0)
+        indep2.add_output('cut_out', val=4.0)
         indep2.add_output('r', val=40.0)
         indep2.add_output('n_turbines', val=4)
-        indep2.add_output('freestream', val=[8.5, 8.0])
-        indep2.add_output('angle', val=[90.0, 270.0])  # Follows windrose convention N = 0 deg, E = 90 deg, S = 180 deg,
-        # W = 270 deg
         self.add_subsystem('AEP', AEPWorkflow(real_angle, artificial_angle, n_windspeedbins))
 
         self.connect('indep2.layout', 'AEP.original')
@@ -71,14 +69,21 @@ def read_layout(layout_file):
 prob = Problem()
 prob.model = WorkingGroup(PowerPolynomial, JensenWakeFraction, JensenWakeDeficit, WakeMergeRSS)
 prob.setup()
+# view_model(prob)
 start = time()
 prob.run_model()
 print time() - start, "seconds"
-for nn in range(4):
-    print [ind for ind in prob['parallel.wake{}.wakemodel.U'.format(nn)] if ind > 0]
-    print prob['parallel.wake{}.farmpower.farm_power'.format(nn)]
+print prob['AEP.AEP']
+# for nn in range(8):
+#     print prob['AEP.windrose.cases'][nn]
+#     print [ind for ind in prob['AEP.parallel.farmpower{}.wakemodel.U'.format(nn)] if ind > 0]
+#     print prob['AEP.parallel.farmpower{}.farmonepower.farm_power'.format(nn)]
+# print prob['AEP.combine.combined_p']
+# print
+# print prob['AEP.energy.probabilities']
+# print prob['AEP.energy.powers']
+# print prob['AEP.energy.energies']
 
-# view_model(prob)
 # data = prob.check_totals(of=['farmpower.farm_power'], wrt=['indep2.k'])
 # print data
 # data = prob.check_partials(suppress_output=True)

@@ -3,6 +3,9 @@ from src.AbsWakeModel.wake_linear_solver import WakeModel
 from src.AbsPower.abstract_power import FarmAeroPower
 from src.AbsAEP.WindroseProcess import WindrosePreprocessor
 from Power.power_models import PowerPolynomial
+from WakeModel.jensen import JensenWakeFraction, JensenWakeDeficit
+from WakeModel.WakeMerge.RSS import WakeMergeRSS
+import numpy as np
 
 
 class AEPWorkflow(Group):
@@ -24,18 +27,18 @@ class AEPWorkflow(Group):
                                                                                                     'wind_directions'])
         self.add_subsystem('parallel', Parallel(self.artificial_angle, self.n_windspeedbins),
                            promotes_inputs=['original', 'n_turbines', 'r'])
-        self.add_subsystem('energy', PowersToAEP(self.artificial_angle, self.n_windspeedbins),
-                           promotes_outputs=['energies'])
         self.add_subsystem('combine', CombinePowers(self.artificial_angle, self.n_windspeedbins))
+        self.add_subsystem('energy', PowersToAEP(self.artificial_angle, self.n_windspeedbins),
+                           promotes_outputs=['energies', 'AEP'])
 
         for n in range(int(self.n_cases)):
-            self.connect('windrose.cases', 'parallel.farmpower{}.angle'.format(n), src_indices=(n, 0),
+            self.connect('windrose.cases', 'parallel.farmpower{}.angle'.format(n), src_indices=[(n, 0)],
                          flat_src_indices=False)
-            self.connect('windrose.cases', 'parallel.farmpower{}.freestream'.format(n), src_indices=(n, 1),
+            self.connect('windrose.cases', 'parallel.farmpower{}.freestream'.format(n), src_indices=[(n, 1)],
                          flat_src_indices=False)
-            self.connect('parallel.farmpower{}.farm_power', 'combine_powers.p{}'.format(n))
-        self.connect('windrose.probabilities', 'combine_powers.probabilities')
-        self.connect('combine_powers.combined_p', 'energy.powers')
+            self.connect('parallel.farmpower{}.farm_power'.format(n), 'combine.p{}'.format(n))
+        self.connect('combine.combined_p', 'energy.powers')
+        self.connect('windrose.probabilities', 'energy.probabilities')
 
 
 class CombinePowers(ExplicitComponent):
@@ -48,10 +51,10 @@ class CombinePowers(ExplicitComponent):
     def setup(self):
         for n in range(self.n_cases):
             self.add_input('p{}'.format(n), val=0.0)
-        self.add_output('combined_p', shape=self.n_cases)
+        self.add_output('combined_p', shape=(self.n_cases, 1))
 
     def compute(self, inputs, outputs):
-        outputs['combined_p'] = np.array([inputs['p{}'.format(n)] for n in range(self.n_cases)])
+        outputs['combined_p'] = [inputs['p{}'.format(n)] for n in range(self.n_cases)]
 
 
 class Parallel(Group):
@@ -80,10 +83,10 @@ class OneAngleFarmPower(Group):
         self.add_subsystem('wakemodel', WakeModel(self.fraction_model, self.deficit_model, self.merge_model),
                            promotes_inputs=['original', 'n_turbines', 'r', 'angle', 'freestream'])
         self.add_subsystem('power', self.power_model(), promotes_inputs=['n_turbines'])
-        self.add_subsystem('farmpower', FarmAeroPower(), promotes_inputs=['n_turbines'])
+        self.add_subsystem('farmonepower', FarmAeroPower(), promotes_inputs=['n_turbines'], promotes_outputs=['farm_power'])
 
         self.connect('wakemodel.U', 'power.U')
-        self.connect('power.p', 'farmpower.ind_powers')
+        self.connect('power.p', 'farmonepower.ind_powers')
 
 
 class PowersToAEP(ExplicitComponent):
@@ -99,3 +102,10 @@ class PowersToAEP(ExplicitComponent):
 
         self.add_output('energies', shape=self.windrose_cases)
         self.add_output('AEP', val=0.0)
+
+    def compute(self, inputs, outputs):
+        powers = inputs['powers']
+        probs = inputs['probabilities']
+        energies = powers * probs * 8760.0
+        outputs['energies'] = energies
+        outputs['AEP'] = sum(energies)
