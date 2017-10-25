@@ -3,29 +3,10 @@ from WakeModel.jensen import JensenWakeFraction, JensenWakeDeficit
 from openmdao.api import IndepVarComp, Problem, Group, view_model, ParallelGroup
 import numpy as np
 from time import time
-from src.api import FarmAeroPower
+from src.api import OneAngleFarmPower
 from Power.power_models import PowerPolynomial
 from input_params import turbine_radius
 from WakeModel.WakeMerge.RSS import WakeMergeRSS
-
-
-class FarmGroup(Group):
-    def __init__(self, power_model, fraction_model, deficit_model, merge_model):
-        super(FarmGroup, self).__init__()
-        self.power_model = power_model
-        self.merge_model = merge_model
-        self.fraction_model = fraction_model
-        self.deficit_model = deficit_model
-
-    def setup(self):
-        self.add_subsystem('farmg', Group())
-        self.add_subsystem('wakemodel', WakeModel(self.fraction_model, self.deficit_model, self.merge_model),
-                           promotes_inputs=['original', 'n_turbines', 'r'])
-        self.add_subsystem('power', self.power_model(), promotes_inputs=['n_turbines'])
-        self.add_subsystem('farmpower', FarmAeroPower(), promotes_inputs=['n_turbines'])
-
-        self.connect('wakemodel.U', 'power.U')
-        self.connect('power.p', 'farmpower.ind_powers')
 
 
 class WorkingGroup(Group):
@@ -57,11 +38,13 @@ class WorkingGroup(Group):
 
         for n in range(2):
             for m in range(2):
-                parallel.add_subsystem('wake{}'.format(2*n+m), FarmGroup(PowerPolynomial, JensenWakeFraction,
-                                                                     JensenWakeDeficit, WakeMergeRSS),
+                parallel.add_subsystem('wake{}'.format(2 * n + m),
+                                       OneAngleFarmPower(PowerPolynomial, JensenWakeFraction,
+                                                         JensenWakeDeficit, WakeMergeRSS),
                                        promotes_inputs=['original', 'n_turbines', 'r'])
-                self.connect('indep2.angle', 'parallel.wake{}.wakemodel.angle'.format(2*n+m), src_indices=n)
-                self.connect('indep2.freestream', 'parallel.wake{}.wakemodel.freestream'.format(2*n+m), src_indices=m)
+                self.connect('indep2.angle', 'parallel.wake{}.wakemodel.angle'.format(2 * n + m), src_indices=n)
+                self.connect('indep2.freestream', 'parallel.wake{}.wakemodel.freestream'.format(2 * n + m),
+                             src_indices=m)
 
         self.connect('indep2.layout', 'parallel.original')
         self.connect('indep2.n_turbines', 'parallel.n_turbines')
@@ -86,11 +69,11 @@ prob.setup()
 start = time()
 prob.run_model()
 print time() - start, "seconds"
-for n in range(4):
-    print [ind for ind in prob['parallel.wake{}.wakemodel.U'.format(n)] if ind > 0]
-    print prob['parallel.wake{}.farmpower.farm_power'.format(n)]
+for nn in range(4):
+    print [ind for ind in prob['parallel.wake{}.wakemodel.U'.format(nn)] if ind > 0]
+    print prob['parallel.wake{}.farmpower.farm_power'.format(nn)]
 
-view_model(prob)
+# view_model(prob)
 # data = prob.check_totals(of=['farmpower.farm_power'], wrt=['indep2.k'])
 # print data
 # data = prob.check_partials(suppress_output=True)
