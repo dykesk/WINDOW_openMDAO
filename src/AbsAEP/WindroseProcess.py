@@ -2,6 +2,7 @@ from openmdao.api import ExplicitComponent
 from math import gamma
 from numpy import exp
 import numpy as np
+from time import clock
 
 
 class WindrosePreprocessor(ExplicitComponent):
@@ -26,6 +27,7 @@ class WindrosePreprocessor(ExplicitComponent):
         self.add_output('probabilities', shape=(self.n_cases,1))
 
     def compute(self, inputs, outputs):
+        print clock(), "1st line compute Windrose"
         # print "WINDROSE OUTPUT"
         cut_in = inputs['cut_in']
         cut_out = inputs['cut_out']

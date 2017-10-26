@@ -5,7 +5,7 @@ from src.AbsAEP.WindroseProcess import WindrosePreprocessor
 from Power.power_models import PowerPolynomial
 from WakeModel.jensen import JensenWakeFraction, JensenWakeDeficit
 from WakeModel.WakeMerge.RSS import WakeMergeRSS
-import numpy as np
+from time import clock
 
 
 class AEPWorkflow(Group):
@@ -57,7 +57,7 @@ class CombinePowers(ExplicitComponent):
         outputs['combined_p'] = [inputs['p{}'.format(n)] for n in range(self.n_cases)]
 
 
-class Parallel(ParallelGroup):
+class Parallel(Group):
     def __init__(self, artificial_angle, n_windspeedbins):
         super(Parallel, self).__init__()
         self.n_angles = 360.0 / artificial_angle
@@ -110,3 +110,4 @@ class PowersToAEP(ExplicitComponent):
         energies = powers * probs * 8760.0
         outputs['energies'] = energies
         outputs['AEP'] = sum(energies)
+        print clock(), "Last line compute AEP energies"

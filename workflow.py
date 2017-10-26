@@ -2,15 +2,15 @@ from openmdao.api import IndepVarComp, Problem, Group, view_model, ParallelGroup
 from src.api import WakeModel
 from WakeModel.jensen import JensenWakeFraction, JensenWakeDeficit
 import numpy as np
-from time import time
+from time import time, clock
 from Power.power_models import PowerPolynomial
 from input_params import turbine_radius
 from WakeModel.WakeMerge.RSS import WakeMergeRSS
 from src.api import AEPWorkflow
 
 real_angle = 180.0
-artificial_angle = 30.0
-n_windspeedbins = 9
+artificial_angle = 1.0
+n_windspeedbins = 23
 
 
 class WorkingGroup(Group):
@@ -63,16 +63,44 @@ def read_layout(layout_file):
 
     return np.array(layout)
 
-
+print clock(), "Before defining problem"
 prob = Problem()
+print clock(), "Before defining model"
 prob.model = WorkingGroup(PowerPolynomial, JensenWakeFraction, JensenWakeDeficit, WakeMergeRSS)
-prob.setup(vector_class=PETScVector, check=True, mode='fwd')
+print clock(), "Before setup"
+# prob.setup(vector_class=PETScVector, check=True, mode='fwd')
+prob.setup()
+print clock(), "After setup"
 prob.set_solver_print(level=0)
+print clock(), "After solver print"
 # view_model(prob)
 start = time()
+prob['indep2.cut_in'] = 4.1
+print clock(), "Before 1st run"
 prob.run_model()
-print time() - start, "seconds"
+print clock(), "After 1st run"
+print time() - start, "seconds", clock()
 print prob['AEP.AEP']
+
+print "second run"
+start = time()
+prob['indep2.cut_in'] = 4.2
+print clock(), "Before 2nd run"
+prob.run_model()
+print clock(), "After 2nd run"
+print time() - start, "seconds", clock()
+print prob['AEP.AEP']
+
+
+print "third run"
+start = time()
+prob['indep2.cut_in'] = 4.3
+print clock(), "Before 3rd run"
+prob.run_model()
+print clock(), "After 3rd run"
+print time() - start, "seconds", clock()
+print prob['AEP.AEP']
+
 # for nn in range(8):
 #     print prob['AEP.windrose.cases'][nn]
 #     print [ind for ind in prob['AEP.parallel.farmpower{}.wakemodel.U'.format(nn)] if ind > 0]
