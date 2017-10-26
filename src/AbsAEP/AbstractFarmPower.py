@@ -1,11 +1,11 @@
-from openmdao.api import Group, ExplicitComponent
+from openmdao.api import Group, ExplicitComponent, ParallelGroup
 from src.AbsWakeModel.wake_linear_solver import WakeModel
 from src.AbsPower.abstract_power import FarmAeroPower
 from src.AbsAEP.WindroseProcess import WindrosePreprocessor
 from Power.power_models import PowerPolynomial
 from WakeModel.jensen import JensenWakeFraction, JensenWakeDeficit
 from WakeModel.WakeMerge.RSS import WakeMergeRSS
-import numpy as np
+from time import clock
 
 
 class AEPWorkflow(Group):
@@ -63,6 +63,7 @@ class Parallel(Group):
         self.n_angles = 360.0 / artificial_angle
         self.n_windspeeds = n_windspeedbins + 1
         self.n_cases = self.n_angles * self.n_windspeeds
+        # print self.n_cases
 
     def setup(self):
         for n in range(int(self.n_cases)):
@@ -109,3 +110,4 @@ class PowersToAEP(ExplicitComponent):
         energies = powers * probs * 8760.0
         outputs['energies'] = energies
         outputs['AEP'] = sum(energies)
+        print clock(), "Last line compute AEP energies"

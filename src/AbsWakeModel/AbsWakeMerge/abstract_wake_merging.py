@@ -23,24 +23,13 @@ if __name__ == '__main__':
     from openmdao.api import Problem, Group, IndepVarComp
     from numpy import sqrt
 
-    class RSSMerge(AbstractWakeMerging):
-
-        def compute(self, inputs, outputs):
-            all_du = inputs['all_du']
-            add = 0.0
-            for du in all_du:
-                add += du ** 2.0
-            root = sqrt(add)
-
-            outputs['u'] = root
-
     model = Group()
     ivc = IndepVarComp()
 
     ivc.add_output('deficits', [0.16, 0.14, 0.15, 0.18])
 
     model.add_subsystem('indep', ivc)
-    model.add_subsystem('rms', RSSMerge(4))
+    model.add_subsystem('rms', RSSMerge())
 
     model.connect('indep.deficits', 'rms.all_du')
 

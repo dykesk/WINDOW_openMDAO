@@ -2,6 +2,7 @@ from openmdao.api import ExplicitComponent
 from math import gamma
 from numpy import exp
 import numpy as np
+from time import clock
 
 
 class WindrosePreprocessor(ExplicitComponent):
@@ -26,6 +27,8 @@ class WindrosePreprocessor(ExplicitComponent):
         self.add_output('probabilities', shape=(self.n_cases,1))
 
     def compute(self, inputs, outputs):
+        print clock(), "1st line compute Windrose"
+        # print "WINDROSE OUTPUT"
         cut_in = inputs['cut_in']
         cut_out = inputs['cut_out']
         weibull_shapes = inputs['weibull_shapes']
@@ -47,7 +50,6 @@ class WindrosePreprocessor(ExplicitComponent):
             for ws, prob3 in zip(wind_speeds2, prob2):
                 cases.append([wdir, ws])
                 probs.append(prob1 / 100.0 * prob3 / 100.0)
-
         outputs['probabilities'] = probs
         outputs['cases'] = np.array(cases)
 

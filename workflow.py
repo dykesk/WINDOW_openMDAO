@@ -1,15 +1,14 @@
-from openmdao.api import IndepVarComp, Problem, Group, view_model, ParallelGroup
-from src.api import AEPWorkflow, WakeModel
-import numpy as np
-from time import time
+from openmdao.api import IndepVarComp, Problem, Group, view_model, ParallelGroup, PETScVector
+from src.api import WakeModel
 from WakeModel.jensen import JensenWakeFraction, JensenWakeDeficit
-from WakeModel.WakeMerge.RSS import WakeMergeRSS
+import numpy as np
+from time import time, clock
 from Power.power_models import PowerPolynomial
 from input_params import turbine_radius
 
 real_angle = 180.0
-artificial_angle = 10.0
-n_windspeedbins = 10
+artificial_angle = 1.0
+n_windspeedbins = 23
 
 
 class WorkingGroup(Group):
@@ -22,10 +21,13 @@ class WorkingGroup(Group):
 
     def setup(self):
         indep2 = self.add_subsystem('indep2', IndepVarComp())
-        indep2.add_output('layout', val=read_layout('layout.dat'))
-        # indep2.add_output('layout', val=np.array([[0, 0.0, 0.0], [1, 0.0, 560.0], [2, 0.0, 1120.0], [3, 0.0, 1680.0],
-        #                                           [4, 0.0, 1120.0], [5, 0.0, 1120.0], [6, 0.0, 1120.0],
-        #                                           [7, 0.0, 1120.0], [8, 0.0, 1120.0], [9, 0.0, 1120.0]]))
+        # indep2.add_output('layout', val=read_layout('horns_rev9.dat'))
+        indep2.add_output('layout', val=np.array([[0, 0.0, 0.0], [1, 0.0, 560.0], [2, 0.0, 1120.0], [3, 0.0, 1680.0]]))
+        # indep2.add_output('layout', val=np.array(
+        #     [[0, 0.0, 0.0], [1, 560.0, 560.0], [2, 1120.0, 1120.0], [3, 1120.0, 0.0], [4, 0.0, 1120.0],
+        #     [5, 6666.6, 6666.6], [6, 6666.6, 6666.6], [7, 6666.6, 6666.6], [8, 6666.6, 6666.6], [9, 6666.6, 6666.6]]))
+        # indep2.add_output('layout', val=np.array([[0, 0.0, 0.0], [1, 560.0, 560.0], [2, 1120.0, 1120.0],
+        # [3, 1120.0, 0.0], [4, 0.0, 1120.0], [5, float('nan'), float('nan')]]))
         indep2.add_output('weibull_shapes', val=[1.0, 1.0])
         indep2.add_output('weibull_scales', val=[8.5, 8.5])
         indep2.add_output('dir_probabilities', val=[50.0, 50.0])
@@ -59,17 +61,44 @@ def read_layout(layout_file):
 
     return np.array(layout)
 
-
-start = time()
+print clock(), "Before defining problem"
 prob = Problem()
+print clock(), "Before defining model"
 prob.model = WorkingGroup(PowerPolynomial, JensenWakeFraction, JensenWakeDeficit, WakeMergeRSS)
+print clock(), "Before setup"
+# prob.setup(vector_class=PETScVector, check=True, mode='fwd')
 prob.setup()
-print time() - start, "seconds"
+print clock(), "After setup"
+prob.set_solver_print(level=0)
+print clock(), "After solver print"
 # view_model(prob)
 start = time()
+prob['indep2.cut_in'] = 4.1
+print clock(), "Before 1st run"
 prob.run_model()
-print time() - start, "seconds"
+print clock(), "After 1st run"
+print time() - start, "seconds", clock()
 print prob['AEP.AEP']
+
+print "second run"
+start = time()
+prob['indep2.cut_in'] = 4.2
+print clock(), "Before 2nd run"
+prob.run_model()
+print clock(), "After 2nd run"
+print time() - start, "seconds", clock()
+print prob['AEP.AEP']
+
+
+print "third run"
+start = time()
+prob['indep2.cut_in'] = 4.3
+print clock(), "Before 3rd run"
+prob.run_model()
+print clock(), "After 3rd run"
+print time() - start, "seconds", clock()
+print prob['AEP.AEP']
+
 # for nn in range(8):
 #     print prob['AEP.windrose.cases'][nn]
 #     print [ind for ind in prob['AEP.parallel.farmpower{}.wakemodel.U'.format(nn)] if ind > 0]

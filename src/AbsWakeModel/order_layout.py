@@ -2,6 +2,7 @@ from openmdao.api import ExplicitComponent
 from numpy import deg2rad, tan, cos, sqrt
 import numpy as np
 from input_params import max_n_turbines
+from time import clock
 
 
 def distance_to_front(x, y, theta):
@@ -32,11 +33,12 @@ class OrderLayout(ExplicitComponent):
         original = inputs['original'][:n_turbines]
         # print original, "Input Original layout"
         angle = inputs['angle']
-        print "1 Order", angle
+        # print "Order", angle
         ordered = order(original, angle)
+        # print clock()
         lendif = max_n_turbines - len(original)
         if lendif > 0:
-            ordered = np.concatenate((ordered, [[0 for _ in range(3)] for n in range(lendif)]))
+            ordered = np.concatenate((ordered, [[0 for _ in range(3)] for _ in range(lendif)]))
         outputs['ordered'] = ordered
         # print ordered, "Output"
 
