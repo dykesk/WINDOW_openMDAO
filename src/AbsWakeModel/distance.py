@@ -3,6 +3,7 @@ from input_params import max_n_turbines
 import numpy as np
 from numpy import sqrt, deg2rad, tan
 
+
 class DistanceComponent(ExplicitComponent):
     def __init__(self, number):
         super(DistanceComponent, self).__init__()
@@ -19,7 +20,7 @@ class DistanceComponent(ExplicitComponent):
         # self.declare_partials('*', '*', method='fd')
 
     def compute(self, inputs, outputs):
-        #print "3 Distance"
+        # print "3 Distance"
         n_turbines = int(inputs['n_turbines'])
         layout = inputs['layout']
         # print layout, "Input"
@@ -33,9 +34,9 @@ class DistanceComponent(ExplicitComponent):
                 d_down = np.append(d_down, [d_down1])
         lendif = max_n_turbines - len(d_cross) - 1
         outputs['dist_down'] = np.concatenate((d_down, [0 for n in range(lendif)]))
-        #print outputs['dist_down'], "Output1"
+        # print outputs['dist_down'], "Output1"
         outputs['dist_cross'] = np.concatenate((d_cross, [0 for n in range(lendif)]))
-        #print outputs['dist_cross'], "Output2"
+        # print outputs['dist_cross'], "Output2"
 
 
 def distance(t1, t2, angle):

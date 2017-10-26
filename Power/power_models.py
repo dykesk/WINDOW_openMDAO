@@ -17,7 +17,7 @@ class PowerPolynomial(AbstractPower):
                 pow = 2000000.0
             else:
                 pow = 0.0
-            p = np.append(p, pow)
+            p = np.append(p, [pow])
         lendif = max_n_turbines - len(p)
         if lendif > 0:
             p = np.concatenate((p, [0 for n in range(lendif)]))

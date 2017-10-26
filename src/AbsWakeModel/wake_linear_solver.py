@@ -2,7 +2,7 @@ from openmdao.api import Group, ExplicitComponent, LinearRunOnce, LinearBlockGS,
     LinearBlockJac, IndepVarComp
 import numpy as np
 from order_layout import OrderLayout
-from src.AbsThrustCoefficient.abstract_thrust import ThrustCoefficient, FirstThrustCoefficient
+from ThrustCoefficient.abstract_thrust import ThrustCoefficientPolynomial
 from input_params import max_n_turbines
 from distance import DistanceComponent
 from windspeed_deficits import SpeedDeficits, CombineSpeed
@@ -32,12 +32,10 @@ class LinearSolveWake(Group):
         self.model_merge = merge_model
 
     def setup(self):
-        freestream = self.add_subsystem('freestream', IndepVarComp())
-        freestream.add_output('freestream', val=8.5)
         self.add_subsystem('order_layout', OrderLayout(), promotes_inputs=['original', 'angle', 'n_turbines'])
 
         for n in range(max_n_turbines):
-            self.add_subsystem('ct{}'.format(n), ThrustCoefficient(n), promotes_inputs=['n_turbines'])
+            self.add_subsystem('ct{}'.format(n), ThrustCoefficientPolynomial(n), promotes_inputs=['n_turbines'])
             self.add_subsystem('deficits{}'.format(n), Wake(self.fraction_model, self.deficit_model, n),
                                promotes_inputs=['angle', 'r', 'n_turbines'])
             self.add_subsystem('merge{}'.format(n), self.model_merge(), promotes_inputs=['n_turbines'])

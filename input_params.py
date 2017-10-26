@@ -1,2 +1,2 @@
-max_n_turbines = 10
+max_n_turbines = 4
 turbine_radius = 40.0

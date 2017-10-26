@@ -1,4 +1,4 @@
-from openmdao.api import Group, ExplicitComponent
+from openmdao.api import Group, ExplicitComponent, ParallelGroup
 from src.AbsWakeModel.wake_linear_solver import WakeModel
 from src.AbsPower.abstract_power import FarmAeroPower
 from src.AbsAEP.WindroseProcess import WindrosePreprocessor
@@ -57,12 +57,13 @@ class CombinePowers(ExplicitComponent):
         outputs['combined_p'] = [inputs['p{}'.format(n)] for n in range(self.n_cases)]
 
 
-class Parallel(Group):
+class Parallel(ParallelGroup):
     def __init__(self, artificial_angle, n_windspeedbins):
         super(Parallel, self).__init__()
         self.n_angles = 360.0 / artificial_angle
         self.n_windspeeds = n_windspeedbins + 1
         self.n_cases = self.n_angles * self.n_windspeeds
+        # print self.n_cases
 
     def setup(self):
         for n in range(int(self.n_cases)):

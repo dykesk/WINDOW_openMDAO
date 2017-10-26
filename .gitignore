@@ -30,3 +30,7 @@ linear_fixed
 visualization/
 
 n2\.html
+
+\.ipynb_checkpoints/
+
+*.ipynb
