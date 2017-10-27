@@ -34,3 +34,5 @@ n2\.html
 \.ipynb_checkpoints/
 
 *.ipynb
+
+data_out_try

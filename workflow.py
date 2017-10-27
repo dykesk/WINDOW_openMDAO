@@ -1,5 +1,5 @@
 from openmdao.api import IndepVarComp, Problem, Group, view_model, ParallelGroup, PETScVector
-from src.api import WakeModel
+from src.api import WakeModel, AEPWorkflow
 from WakeModel.jensen import JensenWakeFraction, JensenWakeDeficit
 import numpy as np
 from time import time, clock
@@ -7,17 +7,17 @@ from Power.power_models import PowerPolynomial
 from input_params import turbine_radius
 
 real_angle = 180.0
-artificial_angle = 1.0
-n_windspeedbins = 23
+artificial_angle = 10.0
+n_windspeedbins = 10
 
 
 class WorkingGroup(Group):
-    def __init__(self, power_model, fraction_model, deficit_model, merge_model):
+    def __init__(self,):
         super(WorkingGroup, self).__init__()
-        self.power_model = power_model
-        self.fraction_model = fraction_model
-        self.deficit_model = deficit_model
-        self.merge_model = merge_model
+        # self.power_model = power_model
+        # self.fraction_model = fraction_model
+        # self.deficit_model = deficit_model
+        # self.merge_model = merge_model
 
     def setup(self):
         indep2 = self.add_subsystem('indep2', IndepVarComp())
@@ -36,7 +36,7 @@ class WorkingGroup(Group):
         indep2.add_output('cut_in', val=4.0)
         indep2.add_output('cut_out', val=25.0)
         indep2.add_output('r', val=40.0)
-        indep2.add_output('n_turbines', val=9)
+        indep2.add_output('n_turbines', val=4)
         self.add_subsystem('AEP', AEPWorkflow(real_angle, artificial_angle, n_windspeedbins))
 
         self.connect('indep2.layout', 'AEP.original')
@@ -64,7 +64,7 @@ def read_layout(layout_file):
 print clock(), "Before defining problem"
 prob = Problem()
 print clock(), "Before defining model"
-prob.model = WorkingGroup(PowerPolynomial, JensenWakeFraction, JensenWakeDeficit, WakeMergeRSS)
+prob.model = WorkingGroup()
 print clock(), "Before setup"
 # prob.setup(vector_class=PETScVector, check=True, mode='fwd')
 prob.setup()
